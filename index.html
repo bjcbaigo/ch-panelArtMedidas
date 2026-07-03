@@ -30,7 +30,8 @@
 
     body {
       margin: 0;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
       background:
         linear-gradient(180deg, rgba(233, 244, 246, 0.75), rgba(245, 247, 250, 0) 260px),
         var(--bg);
@@ -46,9 +47,10 @@
     }
 
     .app {
-      min-height: 100vh;
+      height: 100vh;
       display: grid;
       grid-template-rows: auto 1fr;
+      overflow: hidden;
     }
 
     header {
@@ -119,6 +121,14 @@
       display: grid;
       grid-template-columns: minmax(0, 1fr) 360px;
       gap: 18px;
+      min-height: 0;
+      overflow: hidden;
+    }
+
+    main > section {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
     }
 
     .toolbar {
@@ -205,12 +215,13 @@
       box-shadow: var(--shadow);
       display: grid;
       grid-template-rows: minmax(0, 1fr) auto;
-      max-height: calc(100vh - 220px);
+      min-height: 0;
+      height: 100%;
     }
 
     .table-scroll {
       overflow: auto;
-      min-height: 360px;
+      min-height: 0;
     }
 
     table {
@@ -334,8 +345,9 @@
       overflow: hidden;
       align-self: start;
       position: sticky;
-      top: 20px;
-      max-height: calc(100vh - 40px);
+      top: 0;
+      max-height: 100%;
+      min-height: 0;
       display: grid;
       grid-template-rows: auto 1fr;
     }
@@ -388,6 +400,7 @@
     .detail-body {
       padding: 16px;
       overflow: auto;
+      min-height: 0;
     }
 
     .detail h2 {
@@ -517,6 +530,7 @@
     @media (max-width: 1100px) {
       main {
         grid-template-columns: 1fr;
+        overflow: auto;
       }
 
       .detail {
@@ -533,6 +547,7 @@
 
       main {
         padding: 14px;
+        overflow: auto;
       }
 
       .toolbar,
@@ -660,9 +675,7 @@
         document.head.appendChild(script);
       });
 
-      for (const chunk of manifest.productChunks) {
-        await loadScript(`data/${chunk}`);
-      }
+      await Promise.all(manifest.productChunks.map((chunk) => loadScript(`data/${chunk}`)));
 
       window.PANEL_DATA = {
         ...manifest,

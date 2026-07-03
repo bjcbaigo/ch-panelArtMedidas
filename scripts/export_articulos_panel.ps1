@@ -4,6 +4,7 @@ param(
     [string]$StockServer = "10.10.10.109\SQLEXPRESS_AXOFT",
     [string]$StockDatabase = "Suc_ChemesWeb",
     [string]$PrestashopImageFolder = "C:\Users\rbaig\Documents\Codex\2026-06-11\nueva-necesidad-hay-que-hacer-un\prestashop_imagenes",
+    [switch]$IncludeImages,
     [int[]]$PriceLists = @(1, 2, 3, 4, 5, 6, 20, 21, 500, 501, 504),
     [string]$User = "Axoft",
     [string]$Password = $env:CHEMES_SQL_AXOFT_PASSWORD,
@@ -172,7 +173,7 @@ function Get-BaseSku($value) {
 
 $imageBySku = @{}
 $imageExtensions = @(".jpg", ".jpeg", ".png", ".webp")
-if (Test-Path -LiteralPath $PrestashopImageFolder) {
+if ($IncludeImages -and (Test-Path -LiteralPath $PrestashopImageFolder)) {
     $imageFiles = Get-ChildItem -LiteralPath $PrestashopImageFolder -File -Recurse |
         Where-Object { $imageExtensions -contains $_.Extension.ToLowerInvariant() } |
         Sort-Object FullName
@@ -227,8 +228,8 @@ $products = foreach ($row in $table.Rows) {
     } else {
         @()
     }
-    $primaryImage = if ($prestashopImages.Count -gt 0) { $prestashopImages[0].uri } else { $null }
-    $primaryImagePath = if ($prestashopImages.Count -gt 0) { $prestashopImages[0].path } else { [string]$row.image_path }
+    $primaryImage = if ($IncludeImages -and $prestashopImages.Count -gt 0) { $prestashopImages[0].uri } else { $null }
+    $primaryImagePath = if ($IncludeImages -and $prestashopImages.Count -gt 0) { $prestashopImages[0].path } else { "" }
     $missingLogistics = ($null -eq $height -or $null -eq $width -or $null -eq $depth -or $null -eq $weight)
     $hasAnyLogistics = ($null -ne $height -or $null -ne $width -or $null -ne $depth -or $null -ne $weight)
     $status = if (-not $missingLogistics) { "ok" } elseif ($hasAnyLogistics) { "warn" } else { "bad" }
@@ -257,7 +258,7 @@ $products = foreach ($row in $table.Rows) {
         status = $status
         image = $primaryImage
         imagePath = $primaryImagePath
-        images = @($prestashopImages)
+        images = if ($IncludeImages) { @($prestashopImages) } else { @() }
         notes = if ($status -eq "ok") {
             "Ficha logistica completa segun campos actuales de Tango."
         } elseif ($hasAnyLogistics) {
@@ -293,8 +294,9 @@ for ($i = 0; $i -lt $products.Count; $i += $ChunkSize) {
     $chunkPath = Join-Path $outputDir $chunkName
     $end = [Math]::Min($i + $ChunkSize - 1, $products.Count - 1)
     $chunk = @($products[$i..$end])
-    $chunkJson = $chunk | ConvertTo-Json -Depth 8
-    $chunkContent = "window.PANEL_DATA_CHUNKS = window.PANEL_DATA_CHUNKS || [];`r`nwindow.PANEL_DATA_CHUNKS.push($chunkJson);`r`n"
+    $chunkJson = $chunk | ConvertTo-Json -Depth 8 -Compress
+    $chunkIndex = $chunkNumber - 1
+    $chunkContent = "window.PANEL_DATA_CHUNKS = window.PANEL_DATA_CHUNKS || [];`r`nwindow.PANEL_DATA_CHUNKS[$chunkIndex] = $chunkJson;`r`n"
     [System.IO.File]::WriteAllText($chunkPath, $chunkContent, [System.Text.Encoding]::UTF8)
     [void]$chunkFiles.Add($chunkName)
 }
@@ -303,13 +305,13 @@ $manifest = [ordered]@{
     generatedAt = $generatedAt
     source = "$Server/$Database"
     stockSource = "$StockServer/$StockDatabase"
-    imageSource = $PrestashopImageFolder
+    imageSource = if ($IncludeImages) { $PrestashopImageFolder } else { "" }
     priceLists = @($priceListPayload)
     productChunks = @($chunkFiles)
     productCount = $products.Count
 }
 
-$manifestJson = $manifest | ConvertTo-Json -Depth 8
+$manifestJson = $manifest | ConvertTo-Json -Depth 8 -Compress
 $manifestPath = Join-Path $outputDir "articulos-manifest.js"
 $manifestContent = "window.PANEL_DATA_MANIFEST = $manifestJson;`r`n"
 [System.IO.File]::WriteAllText($manifestPath, $manifestContent, [System.Text.Encoding]::UTF8)
