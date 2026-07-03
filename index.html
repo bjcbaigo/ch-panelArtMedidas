@@ -580,8 +580,32 @@
     </main>
   </div>
 
-  <script src="data/articulos-data.js"></script>
+  <script src="data/articulos-manifest.js"></script>
   <script>
+    const loadPanelData = async () => {
+      const manifest = window.PANEL_DATA_MANIFEST;
+      if (!manifest || !Array.isArray(manifest.productChunks)) return;
+
+      window.PANEL_DATA_CHUNKS = [];
+      const loadScript = (src) => new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = src;
+        script.onload = resolve;
+        script.onerror = reject;
+        document.head.appendChild(script);
+      });
+
+      for (const chunk of manifest.productChunks) {
+        await loadScript(`data/${chunk}`);
+      }
+
+      window.PANEL_DATA = {
+        ...manifest,
+        products: window.PANEL_DATA_CHUNKS.flat()
+      };
+    };
+
+    loadPanelData().then(() => {
     const sampleProducts = [
       {
         sku: "CH-10024",
@@ -1003,6 +1027,7 @@
       : "Datos de muestra";
 
     render();
+    });
   </script>
 </body>
 </html>

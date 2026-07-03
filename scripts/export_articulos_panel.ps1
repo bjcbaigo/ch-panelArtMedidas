@@ -7,7 +7,8 @@ param(
     [int[]]$PriceLists = @(1, 2, 3, 4, 5, 6, 20, 21, 500, 501, 504),
     [string]$User = "Axoft",
     [string]$Password = $env:CHEMES_SQL_AXOFT_PASSWORD,
-    [string]$OutputPath = ".\data\articulos-data.js"
+    [string]$OutputPath = ".\data\articulos-data.js",
+    [int]$ChunkSize = 1500
 )
 
 $ErrorActionPreference = "Stop"
@@ -276,17 +277,41 @@ $priceListPayload = foreach ($listCode in $PriceLists) {
         name = if ($priceListNames.ContainsKey($listKey)) { $priceListNames[$listKey] } else { "Lista $listKey" }
     }
 }
-$payload = [ordered]@{
+
+$legacyOutput = $outputFullPath
+if (Test-Path -LiteralPath $legacyOutput) {
+    Remove-Item -LiteralPath $legacyOutput -Force
+}
+
+Get-ChildItem -LiteralPath $outputDir -Filter "articulos-data-*.js" -File -ErrorAction SilentlyContinue |
+    Remove-Item -Force
+
+$chunkFiles = New-Object System.Collections.ArrayList
+for ($i = 0; $i -lt $products.Count; $i += $ChunkSize) {
+    $chunkNumber = [int]([Math]::Floor($i / $ChunkSize) + 1)
+    $chunkName = "articulos-data-{0:D3}.js" -f $chunkNumber
+    $chunkPath = Join-Path $outputDir $chunkName
+    $end = [Math]::Min($i + $ChunkSize - 1, $products.Count - 1)
+    $chunk = @($products[$i..$end])
+    $chunkJson = $chunk | ConvertTo-Json -Depth 8
+    $chunkContent = "window.PANEL_DATA_CHUNKS = window.PANEL_DATA_CHUNKS || [];`r`nwindow.PANEL_DATA_CHUNKS.push($chunkJson);`r`n"
+    [System.IO.File]::WriteAllText($chunkPath, $chunkContent, [System.Text.Encoding]::UTF8)
+    [void]$chunkFiles.Add($chunkName)
+}
+
+$manifest = [ordered]@{
     generatedAt = $generatedAt
     source = "$Server/$Database"
     stockSource = "$StockServer/$StockDatabase"
     imageSource = $PrestashopImageFolder
     priceLists = @($priceListPayload)
-    products = $products
+    productChunks = @($chunkFiles)
+    productCount = $products.Count
 }
 
-$json = $payload | ConvertTo-Json -Depth 8
-$content = "window.PANEL_DATA = $json;`r`n"
-[System.IO.File]::WriteAllText($outputFullPath, $content, [System.Text.Encoding]::UTF8)
+$manifestJson = $manifest | ConvertTo-Json -Depth 8
+$manifestPath = Join-Path $outputDir "articulos-manifest.js"
+$manifestContent = "window.PANEL_DATA_MANIFEST = $manifestJson;`r`n"
+[System.IO.File]::WriteAllText($manifestPath, $manifestContent, [System.Text.Encoding]::UTF8)
 
-Write-Host "Exportados $($products.Count) articulos a $outputFullPath"
+Write-Host "Exportados $($products.Count) articulos en $($chunkFiles.Count) chunks dentro de $outputDir"
