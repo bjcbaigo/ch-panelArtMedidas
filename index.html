@@ -6,19 +6,22 @@
   <title>Panel de articulos CHEMES</title>
   <style>
     :root {
-      --bg: #f3f6f8;
+      --bg: #f5f7fa;
       --panel: #ffffff;
-      --ink: #1f2933;
-      --muted: #68707c;
-      --line: #dbe3ea;
-      --accent: #006d77;
-      --accent-2: #f59e0b;
+      --ink: #17212b;
+      --muted: #6c7886;
+      --line: #d8e0e8;
+      --accent: #12616f;
+      --accent-dark: #0d4350;
+      --accent-soft: #e9f4f6;
+      --accent-2: #b8860b;
       --danger: #b42318;
       --ok: #16803c;
-      --soft: #eaf5f6;
+      --soft: #eef7f8;
       --warn: #fff4d7;
       --bad: #ffe8e5;
-      --shadow: 0 12px 30px rgba(31, 41, 51, 0.08);
+      --shadow: 0 14px 36px rgba(20, 36, 50, 0.08);
+      --shadow-soft: 0 6px 18px rgba(20, 36, 50, 0.06);
     }
 
     * {
@@ -28,9 +31,11 @@
     body {
       margin: 0;
       min-height: 100vh;
-      background: var(--bg);
+      background:
+        linear-gradient(180deg, rgba(233, 244, 246, 0.75), rgba(245, 247, 250, 0) 260px),
+        var(--bg);
       color: var(--ink);
-      font-family: Arial, Helvetica, sans-serif;
+      font-family: "Segoe UI", Arial, Helvetica, sans-serif;
       font-size: 13px;
     }
 
@@ -47,25 +52,45 @@
     }
 
     header {
-      background: linear-gradient(135deg, #ffffff 0%, #edf7f8 100%);
+      background: rgba(255, 255, 255, 0.92);
       border-bottom: 1px solid var(--line);
-      padding: 16px 24px;
+      padding: 14px 24px;
       display: flex;
       justify-content: space-between;
       gap: 18px;
       align-items: center;
+      box-shadow: var(--shadow-soft);
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      min-width: 0;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: block;
+      box-shadow: 0 8px 18px rgba(18, 97, 111, 0.18);
+      flex: 0 0 auto;
     }
 
     .title h1 {
       margin: 0;
-      font-size: 20px;
+      font-size: 18px;
       line-height: 1.2;
       letter-spacing: 0;
+      color: var(--accent-dark);
     }
 
     .title p {
-      margin: 5px 0 0;
+      margin: 4px 0 0;
       color: var(--muted);
+      font-size: 12px;
     }
 
     .sync {
@@ -74,17 +99,23 @@
       align-items: center;
       color: var(--muted);
       white-space: nowrap;
+      background: var(--accent-soft);
+      border: 1px solid #d4e8ec;
+      border-radius: 999px;
+      padding: 7px 11px;
+      font-size: 12px;
     }
 
     .sync-dot {
       width: 9px;
       height: 9px;
       border-radius: 50%;
-      background: var(--ok);
+      background: #1f9d61;
+      box-shadow: 0 0 0 4px rgba(31, 157, 97, 0.12);
     }
 
     main {
-      padding: 16px 20px 22px;
+      padding: 18px 22px 24px;
       display: grid;
       grid-template-columns: minmax(0, 1fr) 360px;
       gap: 18px;
@@ -94,7 +125,12 @@
       display: grid;
       grid-template-columns: minmax(220px, 1fr) 160px 160px 140px 150px;
       gap: 8px;
-      margin-bottom: 12px;
+      margin-bottom: 13px;
+      background: rgba(255, 255, 255, 0.82);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 9px;
+      box-shadow: var(--shadow-soft);
     }
 
     .field {
@@ -119,6 +155,14 @@
       background: #fff;
       color: var(--ink);
       padding: 0 12px;
+      outline: none;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: #83bdc6;
+      box-shadow: 0 0 0 3px rgba(18, 97, 111, 0.11);
     }
 
     .field input {
@@ -138,12 +182,15 @@
       border-radius: 8px;
       padding: 10px 12px;
       min-height: 66px;
+      box-shadow: var(--shadow-soft);
+      border-top: 3px solid var(--accent);
     }
 
     .metric strong {
       display: block;
       font-size: 19px;
       margin-bottom: 5px;
+      color: var(--accent-dark);
     }
 
     .metric span {
@@ -153,7 +200,7 @@
     .table-wrap {
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 10px;
       overflow: auto;
       box-shadow: var(--shadow);
       max-height: calc(100vh - 220px);
@@ -177,10 +224,11 @@
       position: sticky;
       top: 0;
       z-index: 1;
-      background: #eef1ed;
-      color: #3d454d;
+      background: #edf4f6;
+      color: #344652;
       font-size: 12px;
       text-transform: uppercase;
+      font-weight: 700;
     }
 
     tbody tr {
@@ -194,7 +242,7 @@
 
     .sku {
       font-weight: 700;
-      color: #163e48;
+      color: var(--accent-dark);
     }
 
     .muted {
@@ -231,7 +279,7 @@
     .detail {
       background: var(--panel);
       border: 1px solid var(--line);
-      border-radius: 8px;
+      border-radius: 10px;
       box-shadow: var(--shadow);
       overflow: hidden;
       align-self: start;
@@ -244,7 +292,7 @@
 
     .detail-photo {
       min-height: 230px;
-      background: #e8ece9;
+      background: linear-gradient(135deg, #edf4f6, #f7fafb);
       display: grid;
       place-items: center;
       overflow: hidden;
@@ -270,7 +318,7 @@
       border-radius: 6px;
       padding: 0;
       aspect-ratio: 1;
-      background: #fff;
+      background: #fbfcfd;
       overflow: hidden;
       cursor: pointer;
     }
@@ -396,12 +444,13 @@
     .download {
       min-height: 42px;
       border: 1px solid var(--accent);
-      background: var(--accent);
+      background: linear-gradient(135deg, var(--accent), var(--accent-dark));
       color: #fff;
       border-radius: 8px;
       padding: 0 12px;
       cursor: pointer;
       font-weight: 700;
+      box-shadow: 0 8px 18px rgba(18, 97, 111, 0.18);
     }
 
     .download:hover,
@@ -446,9 +495,12 @@
 <body>
   <div class="app">
     <header>
-      <div class="title">
-        <h1>Panel de articulos CHEMES</h1>
-        <p>Vista unificada de articulos, medidas, stock, listas de precios y datos secundarios.</p>
+      <div class="brand">
+        <img class="brand-logo" src="assets/IsolologoCH.png" alt="CHEMES">
+        <div class="title">
+          <h1>Panel de articulos CHEMES</h1>
+          <p>Articulos, medidas, stock, precios y fotos para canales digitales.</p>
+        </div>
       </div>
       <div class="sync" title="Fecha de ejemplo para el prototipo">
         <span class="sync-dot"></span>
