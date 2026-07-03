@@ -201,9 +201,16 @@
       background: var(--panel);
       border: 1px solid var(--line);
       border-radius: 10px;
-      overflow: auto;
+      overflow: hidden;
       box-shadow: var(--shadow);
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto;
       max-height: calc(100vh - 220px);
+    }
+
+    .table-scroll {
+      overflow: auto;
+      min-height: 360px;
     }
 
     table {
@@ -238,6 +245,49 @@
     tbody tr:hover,
     tbody tr.selected {
       background: var(--soft);
+    }
+
+    .pager {
+      min-height: 52px;
+      border-top: 1px solid var(--line);
+      background: #fbfcfd;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 12px;
+    }
+
+    .pager-info {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .pager-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pager button {
+      min-height: 34px;
+      border: 1px solid var(--line);
+      background: #fff;
+      color: var(--ink);
+      border-radius: 8px;
+      padding: 0 11px;
+      cursor: pointer;
+    }
+
+    .pager button:disabled {
+      opacity: 0.45;
+      cursor: default;
+    }
+
+    .pager select {
+      min-height: 34px;
+      width: auto;
+      padding: 0 28px 0 10px;
     }
 
     .sku {
@@ -536,23 +586,38 @@
         <div class="summary" id="summary"></div>
 
         <div class="table-wrap">
-          <table>
-            <thead>
-              <tr id="headerRow">
-                <th>SKU</th>
-                <th>Articulo</th>
-                <th>Marca</th>
-                <th>Codigo barras</th>
-                <th>Medidas</th>
-                <th>Peso</th>
-                <th>Stock CD</th>
-                <th>Candioti</th>
-                <th>Colchoneria</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody id="rows"></tbody>
-          </table>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr id="headerRow">
+                  <th>SKU</th>
+                  <th>Articulo</th>
+                  <th>Marca</th>
+                  <th>Codigo barras</th>
+                  <th>Medidas</th>
+                  <th>Peso</th>
+                  <th>Stock CD</th>
+                  <th>Candioti</th>
+                  <th>Colchoneria</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
+          <div class="pager">
+            <div class="pager-info" id="pagerInfo">0 articulos</div>
+            <div class="pager-controls">
+              <select id="pageSize" aria-label="Articulos por pagina">
+                <option value="25">25 por pagina</option>
+                <option value="50" selected>50 por pagina</option>
+                <option value="100">100 por pagina</option>
+                <option value="200">200 por pagina</option>
+              </select>
+              <button type="button" id="prevPage">Anterior</button>
+              <button type="button" id="nextPage">Siguiente</button>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -695,6 +760,8 @@
     const state = {
       selectedSku: products[0].sku,
       selectedImageIndex: 0,
+      page: 1,
+      pageSize: 50,
       filters: {
         search: "",
         warehouse: "all",
@@ -793,6 +860,30 @@
         ${priceLists.map((list) => `<th>Lista ${escapeHtml(list.code)}</th>`).join("")}
         <th>Estado</th>
       `;
+    };
+
+    const paginateItems = (items) => {
+      const totalPages = Math.max(1, Math.ceil(items.length / state.pageSize));
+      if (state.page > totalPages) state.page = totalPages;
+      if (state.page < 1) state.page = 1;
+      const startIndex = (state.page - 1) * state.pageSize;
+      const endIndex = startIndex + state.pageSize;
+      return {
+        totalPages,
+        startIndex,
+        endIndex,
+        pageItems: items.slice(startIndex, endIndex)
+      };
+    };
+
+    const renderPager = (items, pagination) => {
+      const total = items.length;
+      const visibleStart = total === 0 ? 0 : pagination.startIndex + 1;
+      const visibleEnd = Math.min(pagination.endIndex, total);
+      document.getElementById("pagerInfo").textContent = `${visibleStart}-${visibleEnd} de ${total} articulos`;
+      document.getElementById("prevPage").disabled = state.page <= 1;
+      document.getElementById("nextPage").disabled = state.page >= pagination.totalPages;
+      document.getElementById("pageSize").value = String(state.pageSize);
     };
 
     const renderRows = (items) => {
@@ -894,10 +985,17 @@
       const items = filteredProducts();
       if (!items.some((item) => item.sku === state.selectedSku) && items.length > 0) {
         state.selectedSku = items[0].sku;
+        state.selectedImageIndex = 0;
       }
+      const pagination = paginateItems(items);
       renderSummary(items);
-      renderRows(items);
+      renderRows(pagination.pageItems);
+      renderPager(items, pagination);
       renderDetail();
+    };
+
+    const resetPage = () => {
+      state.page = 1;
     };
 
     const exportToExcel = () => {
@@ -972,21 +1070,41 @@
 
     document.getElementById("search").addEventListener("input", (event) => {
       state.filters.search = event.target.value;
+      resetPage();
       render();
     });
 
     document.getElementById("warehouse").addEventListener("change", (event) => {
       state.filters.warehouse = event.target.value;
+      resetPage();
       render();
     });
 
     document.getElementById("status").addEventListener("change", (event) => {
       state.filters.status = event.target.value;
+      resetPage();
       render();
     });
 
     document.getElementById("priceList").addEventListener("change", (event) => {
       state.filters.priceList = event.target.value;
+      resetPage();
+      render();
+    });
+
+    document.getElementById("pageSize").addEventListener("change", (event) => {
+      state.pageSize = Number(event.target.value || 50);
+      resetPage();
+      render();
+    });
+
+    document.getElementById("prevPage").addEventListener("click", () => {
+      state.page -= 1;
+      render();
+    });
+
+    document.getElementById("nextPage").addEventListener("click", () => {
+      state.page += 1;
       render();
     });
 
