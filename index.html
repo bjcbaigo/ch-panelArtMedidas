@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Panel de articulos CHEMES</title>
+  <style>
+    :root {
+      --bg: #f3f6f8;
+      --panel: #ffffff;
+      --ink: #1f2933;
+      --muted: #68707c;
+      --line: #dbe3ea;
+      --accent: #006d77;
+      --accent-2: #f59e0b;
+      --danger: #b42318;
+      --ok: #16803c;
+      --soft: #eaf5f6;
+      --warn: #fff4d7;
+      --bad: #ffe8e5;
+      --shadow: 0 12px 30px rgba(31, 41, 51, 0.08);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 13px;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    header {
+      background: linear-gradient(135deg, #ffffff 0%, #edf7f8 100%);
+      border-bottom: 1px solid var(--line);
+      padding: 16px 24px;
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: 20px;
+      line-height: 1.2;
+      letter-spacing: 0;
+    }
+
+    .title p {
+      margin: 5px 0 0;
+      color: var(--muted);
+    }
+
+    .sync {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .sync-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--ok);
+    }
+
+    main {
+      padding: 16px 20px 22px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 18px;
+    }
+
+    .toolbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) 160px 160px 140px 150px;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .field {
+      position: relative;
+    }
+
+    .field span {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted);
+      pointer-events: none;
+    }
+
+    input,
+    select {
+      width: 100%;
+      min-height: 42px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #fff;
+      color: var(--ink);
+      padding: 0 12px;
+    }
+
+    .field input {
+      padding-left: 34px;
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .metric {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px 12px;
+      min-height: 66px;
+    }
+
+    .metric strong {
+      display: block;
+      font-size: 19px;
+      margin-bottom: 5px;
+    }
+
+    .metric span {
+      color: var(--muted);
+    }
+
+    .table-wrap {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      overflow: auto;
+      box-shadow: var(--shadow);
+      max-height: calc(100vh - 220px);
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      min-width: 1180px;
+    }
+
+    th,
+    td {
+      padding: 10px 11px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: #eef1ed;
+      color: #3d454d;
+      font-size: 12px;
+      text-transform: uppercase;
+    }
+
+    tbody tr {
+      cursor: pointer;
+    }
+
+    tbody tr:hover,
+    tbody tr.selected {
+      background: var(--soft);
+    }
+
+    .sku {
+      font-weight: 700;
+      color: #163e48;
+    }
+
+    .muted {
+      color: var(--muted);
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 24px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .pill.ok {
+      background: #e7f6ec;
+      color: var(--ok);
+    }
+
+    .pill.warn {
+      background: var(--warn);
+      color: var(--accent-2);
+    }
+
+    .pill.bad {
+      background: var(--bad);
+      color: var(--danger);
+    }
+
+    .detail {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      align-self: start;
+      position: sticky;
+      top: 20px;
+      max-height: calc(100vh - 40px);
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .detail-photo {
+      min-height: 230px;
+      background: #e8ece9;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+    }
+
+    .detail-photo img {
+      width: 100%;
+      height: 100%;
+      min-height: 230px;
+      object-fit: cover;
+      display: block;
+    }
+
+    .thumbs {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin-bottom: 12px;
+    }
+
+    .thumbs button {
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 0;
+      aspect-ratio: 1;
+      background: #fff;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    .thumbs button.active {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 2px rgba(0, 109, 119, 0.16);
+    }
+
+    .thumbs img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .detail-body {
+      padding: 16px;
+      overflow: auto;
+    }
+
+    .detail h2 {
+      margin: 0 0 6px;
+      font-size: 17px;
+      line-height: 1.25;
+    }
+
+    .detail .code {
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--line);
+      margin-bottom: 12px;
+    }
+
+    .tab {
+      border: 0;
+      background: transparent;
+      min-height: 38px;
+      padding: 0 12px;
+      color: var(--muted);
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+      font-weight: 700;
+    }
+
+    .kv {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .box {
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 10px;
+      min-height: 62px;
+      background: #fff;
+    }
+
+    .box span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 5px;
+    }
+
+    .box strong {
+      font-size: 15px;
+    }
+
+    .alerts {
+      display: grid;
+      gap: 8px;
+    }
+
+    .alert {
+      border-radius: 8px;
+      padding: 10px;
+      line-height: 1.35;
+    }
+
+    .alert.warn {
+      background: var(--warn);
+      color: #6f4300;
+    }
+
+    .alert.bad {
+      background: var(--bad);
+      color: var(--danger);
+    }
+
+    .alert.ok {
+      background: #e7f6ec;
+      color: var(--ok);
+    }
+
+    .actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 14px;
+    }
+
+    .actions button {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      background: #fff;
+      border-radius: 8px;
+      padding: 0 12px;
+      cursor: pointer;
+      color: var(--ink);
+    }
+
+    .download {
+      min-height: 42px;
+      border: 1px solid var(--accent);
+      background: var(--accent);
+      color: #fff;
+      border-radius: 8px;
+      padding: 0 12px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .download:hover,
+    .actions button.primary:hover {
+      filter: brightness(0.95);
+    }
+
+    .actions button.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    @media (max-width: 1100px) {
+      main {
+        grid-template-columns: 1fr;
+      }
+
+      .detail {
+        position: static;
+        max-height: none;
+      }
+    }
+
+    @media (max-width: 760px) {
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      main {
+        padding: 14px;
+      }
+
+      .toolbar,
+      .summary {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>Panel de articulos CHEMES</h1>
+        <p>Vista unificada de articulos, medidas, stock, listas de precios y datos secundarios.</p>
+      </div>
+      <div class="sync" title="Fecha de ejemplo para el prototipo">
+        <span class="sync-dot"></span>
+        <span id="syncText">Datos de muestra</span>
+      </div>
+    </header>
+
+    <main>
+      <section>
+        <div class="toolbar" aria-label="Filtros del panel">
+          <label class="field">
+            <span>?</span>
+            <input id="search" type="search" placeholder="Buscar SKU, descripcion, marca o codigo de barras">
+          </label>
+          <select id="warehouse">
+            <option value="all">Todos los depositos</option>
+            <option value="cd">Con stock en CD</option>
+            <option value="candioti">Con stock en Candioti</option>
+            <option value="colchoneria">Con stock en Colchoneria</option>
+          </select>
+          <select id="status">
+            <option value="all">Todos los estados</option>
+            <option value="ok">Ficha completa</option>
+            <option value="warn">Revisar</option>
+            <option value="bad">Incompleto</option>
+          </select>
+          <select id="priceList">
+            <option value="all">Todas las listas</option>
+          </select>
+          <button class="download" type="button" id="downloadExcel">Descargar Excel</button>
+        </div>
+
+        <div class="summary" id="summary"></div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr id="headerRow">
+                <th>SKU</th>
+                <th>Articulo</th>
+                <th>Marca</th>
+                <th>Codigo barras</th>
+                <th>Medidas</th>
+                <th>Peso</th>
+                <th>Stock CD</th>
+                <th>Candioti</th>
+                <th>Colchoneria</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="detail" aria-label="Detalle del articulo seleccionado">
+        <div class="detail-photo">
+          <img id="detailImage" alt="Foto del articulo seleccionado">
+        </div>
+        <div class="detail-body">
+          <h2 id="detailName"></h2>
+          <div class="code" id="detailCode"></div>
+          <div class="tabs">
+            <button class="tab active" type="button">Ficha</button>
+            <button class="tab" type="button">Fotos</button>
+            <button class="tab" type="button">Marketplaces</button>
+          </div>
+          <div class="thumbs" id="detailThumbs"></div>
+          <div class="kv" id="detailKv"></div>
+          <div class="alerts" id="detailAlerts"></div>
+          <div class="actions">
+            <button class="primary" type="button" id="copySku">Copiar SKU</button>
+            <button type="button" id="exportRow">Marcar para exportar</button>
+          </div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script src="data/articulos-data.js"></script>
+  <script>
+    const sampleProducts = [
+      {
+        sku: "CH-10024",
+        name: "Sillon relax Milan 1 cuerpo gris",
+        brand: "Milan",
+        barcode: "7798123400241",
+        category: "Living",
+        dimensions: { height: 102, width: 84, depth: 91 },
+        weight: 32.4,
+        stock: { cd: 18, candioti: 2, colchoneria: 0 },
+        prices: { 504: 419990, 500: 399990, 501: 389990 },
+        status: "ok",
+        image: "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?auto=format&fit=crop&w=900&q=80",
+        notes: "Ficha completa para alta en marketplaces. Requiere validar foto secundaria."
+      },
+      {
+        sku: "CH-20418",
+        name: "Colchon espuma alta densidad 2 plazas",
+        brand: "DormiFlex",
+        barcode: "7798123420416",
+        category: "Colchones",
+        dimensions: { height: 24, width: 140, depth: 190 },
+        weight: 18.2,
+        stock: { cd: 7, candioti: 0, colchoneria: 14 },
+        prices: { 504: 289900, 500: 274900, 501: 268500 },
+        status: "ok",
+        image: "https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=900&q=80",
+        notes: "Producto apto para Producteca. Revisar si Avenida exige volumen embalado."
+      },
+      {
+        sku: "CH-31107",
+        name: "Mesa comedor Nordic 140 cm roble",
+        brand: "Nordic",
+        barcode: "7798123431078",
+        category: "Comedor",
+        dimensions: { height: 76, width: 140, depth: 82 },
+        weight: null,
+        stock: { cd: 11, candioti: 1, colchoneria: 0 },
+        prices: { 504: 255000, 500: 244900, 501: 239900 },
+        status: "warn",
+        image: "https://images.unsplash.com/photo-1577140917170-285929fb55b7?auto=format&fit=crop&w=900&q=80",
+        notes: "Falta peso. Logistica debe validar antes de publicar en canales con envio integrado."
+      },
+      {
+        sku: "CH-41032",
+        name: "Rack TV industrial 180 cm negro",
+        brand: "Urban",
+        barcode: "7798123441039",
+        category: "Muebles",
+        dimensions: { height: 62, width: 180, depth: 42 },
+        weight: 41.7,
+        stock: { cd: 0, candioti: 3, colchoneria: 0 },
+        prices: { 504: 198400, 500: 189900, 501: 184900 },
+        status: "warn",
+        image: "https://images.unsplash.com/photo-1616486029423-aaa4789e8c9a?auto=format&fit=crop&w=900&q=80",
+        notes: "Sin stock CD. Puede verse para catalogo, pero no liberar a Macro/BNA todavia."
+      },
+      {
+        sku: "CH-52009",
+        name: "Almohada viscoelastica cervical",
+        brand: "Rest",
+        barcode: "7798123452097",
+        category: "Blanqueria",
+        dimensions: { height: null, width: null, depth: null },
+        weight: null,
+        stock: { cd: 55, candioti: 18, colchoneria: 9 },
+        prices: { 504: 32990, 500: 29990, 501: 28990 },
+        status: "bad",
+        image: "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=900&q=80",
+        notes: "Tiene stock pero faltan medidas y peso. Prioridad alta para completar ficha logistica."
+      }
+    ];
+
+    const products = window.PANEL_DATA && Array.isArray(window.PANEL_DATA.products) && window.PANEL_DATA.products.length
+      ? window.PANEL_DATA.products
+      : sampleProducts;
+
+    const usingRealData = window.PANEL_DATA && Array.isArray(window.PANEL_DATA.products) && window.PANEL_DATA.products.length;
+    const priceLists = window.PANEL_DATA && Array.isArray(window.PANEL_DATA.priceLists) && window.PANEL_DATA.priceLists.length
+      ? window.PANEL_DATA.priceLists
+      : [
+        { code: "504", name: "Lista 504" },
+        { code: "500", name: "Lista 500" },
+        { code: "501", name: "Lista 501" }
+      ];
+
+    const state = {
+      selectedSku: products[0].sku,
+      selectedImageIndex: 0,
+      filters: {
+        search: "",
+        warehouse: "all",
+        status: "all",
+        priceList: "all"
+      }
+    };
+
+    const formatMoney = (value) => value === null || value === undefined ? "-" : new Intl.NumberFormat("es-AR", {
+      style: "currency",
+      currency: "ARS",
+      maximumFractionDigits: 0
+    }).format(value);
+
+    const escapeHtml = (value) => String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;");
+
+    const formatNumber = (value) => Number(value || 0).toLocaleString("es-AR", {
+      maximumFractionDigits: 2
+    });
+
+    const formatDimensions = (dimensions) => {
+      if (!dimensions) return "Faltan datos";
+      const values = [dimensions.height, dimensions.width, dimensions.depth];
+      if (values.some((value) => value === null)) return "Faltan datos";
+      return `${dimensions.height} x ${dimensions.width} x ${dimensions.depth} cm`;
+    };
+
+    const formatWeight = (weight) => weight === null ? "Sin peso" : `${weight.toFixed(1)} kg`;
+
+    const statusLabel = (status) => {
+      if (status === "ok") return "Completo";
+      if (status === "warn") return "Revisar";
+      return "Incompleto";
+    };
+
+    const statusClass = (status) => status === "ok" ? "ok" : status === "warn" ? "warn" : "bad";
+
+    const filteredProducts = () => {
+      return products.filter((product) => {
+        const query = state.filters.search.trim().toLowerCase();
+        const searchable = [
+          product.sku,
+          product.name,
+          product.brand,
+          product.barcode,
+          product.category
+        ].join(" ").toLowerCase();
+
+        const matchesSearch = query === "" || searchable.includes(query);
+        const matchesWarehouse = state.filters.warehouse === "all" || product.stock[state.filters.warehouse] > 0;
+        const matchesStatus = state.filters.status === "all" || product.status === state.filters.status;
+        const matchesPrice = state.filters.priceList === "all" || Number(product.prices[state.filters.priceList] || 0) > 0;
+
+        return matchesSearch && matchesWarehouse && matchesStatus && matchesPrice;
+      });
+    };
+
+    const renderSummary = (items) => {
+      const incomplete = items.filter((item) => item.status === "bad").length;
+      const review = items.filter((item) => item.status === "warn").length;
+      const stockCd = items.reduce((total, item) => total + Number(item.stock.cd || 0), 0);
+      const withPhotos = items.filter((item) => Boolean(item.image || item.imagePath)).length;
+
+      document.getElementById("summary").innerHTML = `
+        <div class="metric"><strong>${items.length}</strong><span>Articulos visibles</span></div>
+        <div class="metric"><strong>${formatNumber(stockCd)}</strong><span>Unidades en CD</span></div>
+        <div class="metric"><strong>${review + incomplete}</strong><span>Alertas logisticas</span></div>
+        <div class="metric"><strong>${withPhotos}</strong><span>Con foto asociada</span></div>
+      `;
+    };
+
+    const renderPriceListControls = () => {
+      const priceSelect = document.getElementById("priceList");
+      const currentValue = priceSelect.value || "all";
+      priceSelect.innerHTML = `
+        <option value="all">Todas las listas</option>
+        ${priceLists.map((list) => `<option value="${escapeHtml(list.code)}">${escapeHtml(list.code)} - ${escapeHtml(list.name)}</option>`).join("")}
+      `;
+      priceSelect.value = priceLists.some((list) => list.code === currentValue) ? currentValue : "all";
+
+      const headerRow = document.getElementById("headerRow");
+      headerRow.innerHTML = `
+        <th>SKU</th>
+        <th>Articulo</th>
+        <th>Marca</th>
+        <th>Codigo barras</th>
+        <th>Medidas</th>
+        <th>Peso</th>
+        <th>Stock CD</th>
+        <th>Candioti</th>
+        <th>Colchoneria</th>
+        ${priceLists.map((list) => `<th>Lista ${escapeHtml(list.code)}</th>`).join("")}
+        <th>Estado</th>
+      `;
+    };
+
+    const renderRows = (items) => {
+      const rows = items.map((product) => `
+        <tr class="${product.sku === state.selectedSku ? "selected" : ""}" data-sku="${product.sku}">
+          <td class="sku">${product.sku}</td>
+          <td>
+            <strong>${product.name}</strong><br>
+            <span class="muted">${product.category}</span>
+          </td>
+          <td>${product.brand}</td>
+          <td>${product.barcode}</td>
+          <td>${formatDimensions(product.dimensions)}</td>
+          <td>${formatWeight(product.weight)}</td>
+          <td>${Number(product.stock.cd || 0).toFixed(0)}</td>
+          <td>${Number(product.stock.candioti || 0).toFixed(0)}</td>
+          <td>${Number(product.stock.colchoneria || 0).toFixed(0)}</td>
+          ${priceLists.map((list) => `<td>${formatMoney(product.prices?.[list.code])}</td>`).join("")}
+          <td><span class="pill ${statusClass(product.status)}">${statusLabel(product.status)}</span></td>
+        </tr>
+      `).join("");
+
+      document.getElementById("rows").innerHTML = rows || `
+        <tr>
+          <td colspan="${10 + priceLists.length}" class="muted">No hay articulos para los filtros seleccionados.</td>
+        </tr>
+      `;
+    };
+
+    const buildAlerts = (product) => {
+      const alerts = [];
+      if (product.status === "ok") {
+        alerts.push({ type: "ok", text: "Ficha logistica completa para consulta y carga operativa." });
+      }
+      if ([product.dimensions.height, product.dimensions.width, product.dimensions.depth].some((value) => value === null)) {
+        alerts.push({ type: "bad", text: "Faltan medidas. No conviene liberar a canales con reglas de envio." });
+      }
+      if (product.weight === null) {
+        alerts.push({ type: "bad", text: "Falta peso. Requiere validacion del equipo de logistica." });
+      }
+      if (product.stock.cd === 0) {
+        alerts.push({ type: "warn", text: "Sin stock en CD. Mostrar con cuidado para Macro y BNA." });
+      }
+      if (product.stock.cd > 0 && product.status !== "ok") {
+        alerts.push({ type: "warn", text: "Tiene stock disponible, pero la ficha no esta completa." });
+      }
+      return alerts;
+    };
+
+    const renderDetail = () => {
+      const product = products.find((item) => item.sku === state.selectedSku) || products[0];
+      const imageElement = document.getElementById("detailImage");
+      const images = Array.isArray(product.images) && product.images.length
+        ? product.images
+        : (product.image ? [{ uri: product.image, path: product.imagePath || product.image, name: "Foto" }] : []);
+      if (state.selectedImageIndex >= images.length) {
+        state.selectedImageIndex = 0;
+      }
+      const selectedImage = images[state.selectedImageIndex];
+      if (selectedImage && selectedImage.uri) {
+        imageElement.src = selectedImage.uri;
+        imageElement.alt = `Foto de ${product.name}`;
+      } else {
+        imageElement.removeAttribute("src");
+        imageElement.alt = product.imagePath ? `Ruta interna: ${product.imagePath}` : "Sin foto publicada";
+      }
+      document.getElementById("detailName").textContent = product.name;
+      document.getElementById("detailCode").textContent = `${product.sku} - ${product.barcode}`;
+      document.getElementById("detailThumbs").innerHTML = images.map((image, index) => `
+        <button type="button" class="${index === state.selectedImageIndex ? "active" : ""}" data-image-index="${index}" title="${escapeHtml(image.name || image.path || "Foto")}">
+          <img src="${escapeHtml(image.uri)}" alt="${escapeHtml(image.name || product.name)}">
+        </button>
+      `).join("");
+
+      const priceBoxes = priceLists.map((list) => `
+        <div class="box"><span>Lista ${escapeHtml(list.code)}</span><strong>${formatMoney(product.prices?.[list.code])}</strong></div>
+      `).join("");
+
+      document.getElementById("detailKv").innerHTML = `
+        <div class="box"><span>Medidas</span><strong>${formatDimensions(product.dimensions)}</strong></div>
+        <div class="box"><span>Peso</span><strong>${formatWeight(product.weight)}</strong></div>
+        <div class="box"><span>Stock total</span><strong>${Number(product.stock.cd || 0) + Number(product.stock.candioti || 0) + Number(product.stock.colchoneria || 0)}</strong></div>
+        <div class="box"><span>Volumen</span><strong>${product.volume ? `${product.volume} m3` : "-"}</strong></div>
+        <div class="box"><span>Bultos</span><strong>${product.packageDimensions && product.packageDimensions.units ? product.packageDimensions.units : "-"}</strong></div>
+        ${priceBoxes}
+      `;
+
+      const alerts = buildAlerts(product).map((alert) => `
+        <div class="alert ${alert.type}">${alert.text}</div>
+      `).join("");
+
+      document.getElementById("detailAlerts").innerHTML = `
+        ${alerts}
+        <div class="alert warn">${product.notes}</div>
+      `;
+    };
+
+    const render = () => {
+      const items = filteredProducts();
+      if (!items.some((item) => item.sku === state.selectedSku) && items.length > 0) {
+        state.selectedSku = items[0].sku;
+      }
+      renderSummary(items);
+      renderRows(items);
+      renderDetail();
+    };
+
+    const exportToExcel = () => {
+      const items = filteredProducts();
+      const headers = [
+        "SKU",
+        "Articulo",
+        "Marca",
+        "Codigo barras",
+        "Categoria",
+        "Alto cm",
+        "Ancho cm",
+        "Largo cm",
+        "Peso kg",
+        "Volumen m3",
+        "Stock CD",
+        "Stock Candioti",
+        "Stock Colchoneria",
+        ...priceLists.map((list) => `Lista ${list.code} - ${list.name}`),
+        "Estado",
+        "Foto principal",
+        "Fotos asociadas"
+      ];
+
+      const rows = items.map((product) => [
+        product.sku,
+        product.name,
+        product.brand,
+        product.barcode,
+        product.category,
+        product.dimensions?.height,
+        product.dimensions?.width,
+        product.dimensions?.depth,
+        product.weight,
+        product.volume,
+        product.stock?.cd,
+        product.stock?.candioti,
+        product.stock?.colchoneria,
+        ...priceLists.map((list) => product.prices?.[list.code]),
+        statusLabel(product.status),
+        product.imagePath || product.image || "",
+        Array.isArray(product.images) ? product.images.map((image) => image.path || image.uri || "").join(" | ") : ""
+      ]);
+
+      const tableRows = [
+        `<tr>${headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr>`,
+        ...rows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join("")}</tr>`)
+      ].join("");
+
+      const html = `
+        <html>
+          <head>
+            <meta charset="utf-8">
+          </head>
+          <body>
+            <table>${tableRows}</table>
+          </body>
+        </html>
+      `;
+
+      const blob = new Blob([html], { type: "application/vnd.ms-excel;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const date = new Date().toISOString().slice(0, 10);
+      link.href = url;
+      link.download = `articulos-chemes-${date}.xls`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    };
+
+    document.getElementById("search").addEventListener("input", (event) => {
+      state.filters.search = event.target.value;
+      render();
+    });
+
+    document.getElementById("warehouse").addEventListener("change", (event) => {
+      state.filters.warehouse = event.target.value;
+      render();
+    });
+
+    document.getElementById("status").addEventListener("change", (event) => {
+      state.filters.status = event.target.value;
+      render();
+    });
+
+    document.getElementById("priceList").addEventListener("change", (event) => {
+      state.filters.priceList = event.target.value;
+      render();
+    });
+
+    document.getElementById("downloadExcel").addEventListener("click", exportToExcel);
+
+    document.getElementById("rows").addEventListener("click", (event) => {
+      const row = event.target.closest("tr[data-sku]");
+      if (!row) return;
+      state.selectedSku = row.dataset.sku;
+      state.selectedImageIndex = 0;
+      render();
+    });
+
+    document.getElementById("detailThumbs").addEventListener("click", (event) => {
+      const button = event.target.closest("button[data-image-index]");
+      if (!button) return;
+      state.selectedImageIndex = Number(button.dataset.imageIndex || 0);
+      renderDetail();
+    });
+
+    document.getElementById("copySku").addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(state.selectedSku);
+      } catch (error) {
+        window.prompt("Copiar SKU", state.selectedSku);
+      }
+    });
+
+    document.getElementById("exportRow").addEventListener("click", () => {
+      const product = products.find((item) => item.sku === state.selectedSku);
+      window.alert(`${product.sku} marcado para futura exportacion.`);
+    });
+
+    renderPriceListControls();
+
+    document.getElementById("syncText").textContent = usingRealData
+      ? `Datos reales: ${window.PANEL_DATA.generatedAt} (${products.length} articulos)`
+      : "Datos de muestra";
+
+    render();
+  </script>
+</body>
+</html>
