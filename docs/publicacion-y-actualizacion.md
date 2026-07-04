@@ -38,6 +38,16 @@ Es simple para Ezequiel, pero hay que cuidar permisos porque se publican precios
 
 Exportar Excel/CSV a Drive y que el panel consuma un archivo publicado. Es mas rapido de implementar, pero menos robusto para fotos, permisos finos y volumen de datos.
 
+## Estado actual revisado
+
+El 04/07/2026 se reviso el Programador de tareas de Windows en `NB-RAUL`.
+No habia una tarea configurada para este panel, `export_articulos_panel.ps1`,
+`ch-panelArtMedidas`, `articulos-data` ni GitHub Pages.
+
+Como el panel quedo publicado en GitHub Pages, no alcanza con generar los datos
+localmente: tambien hay que comitear y pushear los archivos `data/*.js` al repo
+`bjcbaigo/ch-panelArtMedidas`.
+
 ## Actualizacion automatica
 
 Crear una tarea programada en Windows en el servidor que tenga acceso a:
@@ -47,11 +57,30 @@ Crear una tarea programada en Windows en el servidor que tenga acceso a:
 - carpeta de fotos Prestashop
 - carpeta publicada del panel
 
-Comando sugerido:
+Comando sugerido para generar datos solamente:
 
 ```powershell
 $env:CHEMES_SQL_AXOFT_PASSWORD = "<password>"
 PowerShell.exe -ExecutionPolicy Bypass -File "C:\ruta\panel-articulos\scripts\export_articulos_panel.ps1" -OutputPath "C:\ruta\panel-articulos\data\articulos-data.js"
+```
+
+Comando sugerido para GitHub Pages, que genera datos, comitea y pushea:
+
+```powershell
+PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File "C:\Users\rbaig\Documents\CH - Panel con datos Articulos + Medidas\scripts\update_and_publish_panel.ps1"
+```
+
+Antes de crear la tarea, definir la password SQL como variable de entorno del
+usuario que ejecutara la tarea:
+
+```powershell
+[Environment]::SetEnvironmentVariable("CHEMES_SQL_AXOFT_PASSWORD", "<password>", "User")
+```
+
+Ejemplo de tarea cada 60 minutos:
+
+```powershell
+schtasks /Create /TN "CHEMES - Actualizar Panel Articulos" /SC MINUTE /MO 60 /TR "PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File ""C:\Users\rbaig\Documents\CH - Panel con datos Articulos + Medidas\scripts\update_and_publish_panel.ps1""" /F
 ```
 
 Frecuencia sugerida:

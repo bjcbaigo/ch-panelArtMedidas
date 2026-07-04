@@ -8,6 +8,7 @@ La idea es que Ezequiel no consulte Tango, SQL ni recursos internos directamente
 
 - `index.html`: prototipo estatico del panel.
 - `scripts/export_articulos_panel.ps1`: exporta datos reales desde Tango SQL y saldos desde el servidor web.
+- `scripts/update_and_publish_panel.ps1`: refresca datos, comitea cambios y publica en GitHub Pages.
 - `data/articulos-data.js`: datos generados para el panel. Se crea al ejecutar el script.
 - `docs/propuesta-panel-articulos.md`: propuesta funcional y tecnica.
 - `docs/publicacion-y-actualizacion.md`: propuesta para publicar el panel y actualizar datos automaticamente.
@@ -21,6 +22,13 @@ Para refrescar datos reales desde CASA_CENTRAL:
 ```powershell
 $env:CHEMES_SQL_AXOFT_PASSWORD = "<password>"
 .\scripts\export_articulos_panel.ps1
+```
+
+Para refrescar y publicar el panel online en GitHub Pages:
+
+```powershell
+$env:CHEMES_SQL_AXOFT_PASSWORD = "<password>"
+.\scripts\update_and_publish_panel.ps1
 ```
 
 Conexiones usadas por defecto:
