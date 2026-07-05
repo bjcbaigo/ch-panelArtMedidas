@@ -19,18 +19,53 @@ function Write-Step {
     Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] $Message"
 }
 
+function Convert-ToNativeArgument {
+    param([string]$Value)
+
+    if ($null -eq $Value) {
+        return '""'
+    }
+    if ($Value -notmatch '[\s"]') {
+        return $Value
+    }
+    $escaped = $Value -replace '"', '\"'
+    return '"' + $escaped + '"'
+}
+
 function Invoke-NativeStep {
     param(
         [string]$FilePath,
         [string[]]$Arguments
     )
 
-    $output = & $FilePath @Arguments 2>&1
+    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+    $startInfo.FileName = $FilePath
+    $startInfo.Arguments = (($Arguments | ForEach-Object { Convert-ToNativeArgument $_ }) -join " ")
+    $startInfo.WorkingDirectory = (Get-Location).Path
+    $startInfo.UseShellExecute = $false
+    $startInfo.RedirectStandardOutput = $true
+    $startInfo.RedirectStandardError = $true
+
+    $process = [System.Diagnostics.Process]::new()
+    $process.StartInfo = $startInfo
+    [void]$process.Start()
+    $stdout = $process.StandardOutput.ReadToEnd()
+    $stderr = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+
+    $output = @()
+    if (-not [string]::IsNullOrWhiteSpace($stdout)) {
+        $output += ($stdout -split "`r?`n" | Where-Object { $_ -ne "" })
+    }
+    if (-not [string]::IsNullOrWhiteSpace($stderr)) {
+        $output += ($stderr -split "`r?`n" | Where-Object { $_ -ne "" })
+    }
+
     foreach ($line in $output) {
         Write-Host ([string]$line)
     }
-    if ($LASTEXITCODE -ne 0) {
-        throw "$FilePath $($Arguments -join ' ') finalizo con codigo $LASTEXITCODE."
+    if ($process.ExitCode -ne 0) {
+        throw "$FilePath $($Arguments -join ' ') finalizo con codigo $($process.ExitCode)."
     }
     return $output
 }
