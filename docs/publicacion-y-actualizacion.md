@@ -91,14 +91,21 @@ CENTRAL `10.10.10.99`.
 Desde una consola PowerShell abierta como administrador en CENTRAL:
 
 ```powershell
-git clone https://github.com/bjcbaigo/ch-panelArtMedidas.git C:\CH\ch-panelArtMedidas
-cd C:\CH\ch-panelArtMedidas
-.\scripts\install_central_task.ps1 -SqlPassword "<password-sql>" -TaskUser "<usuario-windows>" -TaskPassword "<password-windows>"
+New-Item -ItemType Directory -Force -Path F:\Tarea\DashBoard_comercial\Articulos_Medidas
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/bjcbaigo/ch-panelArtMedidas/master/scripts/install_central_task.ps1" -OutFile "F:\Tarea\DashBoard_comercial\Articulos_Medidas\install_central_task.ps1"
+cd F:\Tarea\DashBoard_comercial\Articulos_Medidas
+.\install_central_task.ps1 -SqlPassword "<password-sql>" -TaskUser "<usuario-windows>" -TaskPassword "<password-windows>"
 ```
 
 Notas:
 
-- Git for Windows debe estar instalado en CENTRAL.
+- El instalador intenta instalar Git for Windows automaticamente con `winget` si no existe.
+- Si CENTRAL no tiene `winget` o no tiene internet, copiar el instalador de Git for Windows al servidor y ejecutar:
+
+```powershell
+.\install_central_task.ps1 -SqlPassword "<password-sql>" -TaskUser "<usuario-windows>" -TaskPassword "<password-windows>" -GitInstallerPath "F:\Tarea\DashBoard_comercial\Articulos_Medidas\GitForWindows.exe"
+```
+
 - El usuario de la tarea debe tener permiso para hacer `git push` al repo de GitHub.
 - Si GitHub pide credenciales, ejecutar una vez `git push origin master` en CENTRAL con ese usuario para dejar el login/credential manager configurado.
 - La tarea local de `NB-RAUL` debe deshabilitarse cuando CENTRAL quede validado, para evitar commits duplicados.
