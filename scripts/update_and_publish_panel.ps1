@@ -40,7 +40,10 @@ try {
     }
 
     Write-Log "Ejecutando exportador SQL"
-    & $exportScript -OutputPath $outputPath | ForEach-Object { Write-Log $_ }
+    $exportOutput = & $exportScript -OutputPath $outputPath 2>&1
+    foreach ($line in $exportOutput) {
+        Write-Log ([string]$line)
+    }
 
     $changes = git status --short -- data index.html
     if ([string]::IsNullOrWhiteSpace(($changes -join ""))) {
@@ -60,6 +63,13 @@ try {
     Write-Log "Publicando en origin/$Branch"
     git push origin $Branch | ForEach-Object { Write-Log $_ }
     Write-Log "Actualizacion publicada correctamente"
+}
+catch {
+    Write-Log "ERROR: $($_.Exception.Message)"
+    if ($_.ScriptStackTrace) {
+        Write-Log $_.ScriptStackTrace
+    }
+    exit 1
 }
 finally {
     Pop-Location
