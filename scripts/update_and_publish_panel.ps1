@@ -21,6 +21,23 @@ function Write-Log {
     Add-Content -LiteralPath $LogPath -Value $line
 }
 
+function Invoke-LoggedNative {
+    param(
+        [string]$FilePath,
+        [string[]]$Arguments,
+        [switch]$AllowFailure
+    )
+
+    $output = & $FilePath @Arguments 2>&1
+    foreach ($line in $output) {
+        Write-Log ([string]$line)
+    }
+    if ($LASTEXITCODE -ne 0 -and -not $AllowFailure) {
+        throw "$FilePath $($Arguments -join ' ') finalizo con codigo $LASTEXITCODE."
+    }
+    return $output
+}
+
 if ([string]::IsNullOrWhiteSpace($env:CHEMES_SQL_AXOFT_PASSWORD)) {
     throw "Falta CHEMES_SQL_AXOFT_PASSWORD. Definala como variable de entorno del usuario que ejecuta la tarea."
 }
@@ -33,16 +50,37 @@ Write-Log "Inicio de actualizacion en $repoFullPath"
 
 Push-Location $repoFullPath
 try {
-    $currentBranch = (git rev-parse --abbrev-ref HEAD).Trim()
+    Invoke-LoggedNative git @("config", "user.name", "CHEMES Panel Bot")
+    Invoke-LoggedNative git @("config", "user.email", "panel-articulos@chemes.local")
+
+    $currentBranch = (& git rev-parse --abbrev-ref HEAD 2>&1)
+    if ($LASTEXITCODE -ne 0) {
+        throw "No se pudo detectar la rama Git actual: $currentBranch"
+    }
+    $currentBranch = ([string]$currentBranch).Trim()
     if ($currentBranch -ne $Branch) {
         Write-Log "Cambiando rama de $currentBranch a $Branch"
-        git checkout $Branch | ForEach-Object { Write-Log $_ }
+        Invoke-LoggedNative git @("checkout", $Branch)
     }
+
+    $preExistingChanges = git status --short -- data index.html
+    if (-not [string]::IsNullOrWhiteSpace(($preExistingChanges -join ""))) {
+        Write-Log "Hay cambios locales previos en data/index.html. Se guardan temporalmente antes de sincronizar:"
+        $preExistingChanges | ForEach-Object { Write-Log $_ }
+        Invoke-LoggedNative git @("stash", "push", "-m", "autostash-panel-before-refresh", "--", "data", "index.html")
+    }
+
+    Write-Log "Sincronizando origin/$Branch"
+    Invoke-LoggedNative git @("fetch", "origin")
+    Invoke-LoggedNative git @("pull", "--ff-only", "origin", $Branch)
 
     Write-Log "Ejecutando exportador SQL"
     $exportOutput = & $exportScript -OutputPath $outputPath 2>&1
     foreach ($line in $exportOutput) {
         Write-Log ([string]$line)
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "El exportador SQL finalizo con codigo $LASTEXITCODE."
     }
 
     $changes = git status --short -- data index.html
@@ -54,14 +92,14 @@ try {
     Write-Log "Cambios detectados:"
     $changes | ForEach-Object { Write-Log $_ }
 
-    git add data index.html | ForEach-Object { Write-Log $_ }
+    Invoke-LoggedNative git @("add", "data", "index.html")
 
     $generatedAt = Get-Date -Format "yyyy-MM-dd HH:mm"
     $commitMessage = "$CommitMessagePrefix $generatedAt"
-    git commit -m $commitMessage | ForEach-Object { Write-Log $_ }
+    Invoke-LoggedNative git @("commit", "-m", $commitMessage)
 
     Write-Log "Publicando en origin/$Branch"
-    git push origin $Branch | ForEach-Object { Write-Log $_ }
+    Invoke-LoggedNative git @("push", "origin", $Branch)
     Write-Log "Actualizacion publicada correctamente"
 }
 catch {

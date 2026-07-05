@@ -19,6 +19,22 @@ function Write-Step {
     Write-Host "[$(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')] $Message"
 }
 
+function Invoke-NativeStep {
+    param(
+        [string]$FilePath,
+        [string[]]$Arguments
+    )
+
+    $output = & $FilePath @Arguments 2>&1
+    foreach ($line in $output) {
+        Write-Host ([string]$line)
+    }
+    if ($LASTEXITCODE -ne 0) {
+        throw "$FilePath $($Arguments -join ' ') finalizo con codigo $LASTEXITCODE."
+    }
+    return $output
+}
+
 function Update-ProcessPath {
     $machinePath = [Environment]::GetEnvironmentVariable("Path", "Machine")
     $userPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -149,9 +165,19 @@ if (Test-Path -LiteralPath (Join-Path $InstallPath ".git")) {
     Write-Step "Repositorio existente: actualizando $Branch"
     Push-Location $InstallPath
     try {
-        git fetch origin
-        git checkout $Branch
-        git pull --ff-only origin $Branch
+        Invoke-NativeStep git @("config", "user.name", "CHEMES Panel Bot")
+        Invoke-NativeStep git @("config", "user.email", "panel-articulos@chemes.local")
+
+        $localChanges = git status --short -- data index.html
+        if (-not [string]::IsNullOrWhiteSpace(($localChanges -join ""))) {
+            Write-Step "Guardando cambios locales previos de data/index.html antes de actualizar"
+            $localChanges | ForEach-Object { Write-Host $_ }
+            Invoke-NativeStep git @("stash", "push", "-m", "autostash-panel-install", "--", "data", "index.html")
+        }
+
+        Invoke-NativeStep git @("fetch", "origin")
+        Invoke-NativeStep git @("checkout", $Branch)
+        Invoke-NativeStep git @("pull", "--ff-only", "origin", $Branch)
     }
     finally {
         Pop-Location
@@ -161,16 +187,18 @@ else {
     Write-Step "Inicializando repositorio en $InstallPath"
     Push-Location $InstallPath
     try {
-        git init
+        Invoke-NativeStep git @("init")
         $remotes = git remote
         if ($remotes -notcontains "origin") {
-            git remote add origin $RepoUrl
+            Invoke-NativeStep git @("remote", "add", "origin", $RepoUrl)
         }
         else {
-            git remote set-url origin $RepoUrl
+            Invoke-NativeStep git @("remote", "set-url", "origin", $RepoUrl)
         }
-        git fetch origin
-        git checkout -B $Branch "origin/$Branch"
+        Invoke-NativeStep git @("fetch", "origin")
+        Invoke-NativeStep git @("checkout", "-B", $Branch, "origin/$Branch")
+        Invoke-NativeStep git @("config", "user.name", "CHEMES Panel Bot")
+        Invoke-NativeStep git @("config", "user.email", "panel-articulos@chemes.local")
     }
     finally {
         Pop-Location
@@ -239,7 +267,18 @@ else {
 
 Write-Step "Tarea creada. Ejecutando una prueba desde el Programador de tareas"
 Start-ScheduledTask -TaskName $TaskName -ErrorAction Stop
-Start-Sleep -Seconds 10
-Get-ScheduledTaskInfo -TaskName $TaskName -ErrorAction Stop | Format-List LastRunTime,LastTaskResult,NextRunTime
+$taskInfo = $null
+for ($i = 0; $i -lt 12; $i++) {
+    Start-Sleep -Seconds 10
+    $taskInfo = Get-ScheduledTaskInfo -TaskName $TaskName -ErrorAction Stop
+    if ($taskInfo.LastTaskResult -ne 267009) {
+        break
+    }
+    Write-Step "La tarea sigue en ejecucion. Esperando..."
+}
+$taskInfo | Format-List LastRunTime,LastTaskResult,NextRunTime
+if ($taskInfo.LastTaskResult -ne 0 -and $taskInfo.LastTaskResult -ne 267009) {
+    throw "La prueba de la tarea termino con LastTaskResult $($taskInfo.LastTaskResult). Revise logs\update-panel.log."
+}
 
 Write-Step "Instalacion finalizada"
