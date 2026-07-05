@@ -91,11 +91,16 @@ CENTRAL `10.10.10.99`.
 Desde una consola PowerShell abierta como administrador en CENTRAL:
 
 ```powershell
+whoami
 New-Item -ItemType Directory -Force -Path F:\Tarea\DashBoard_comercial\Articulos_Medidas
 Invoke-WebRequest -Uri "https://raw.githubusercontent.com/bjcbaigo/ch-panelArtMedidas/master/scripts/install_central_task.ps1" -OutFile "F:\Tarea\DashBoard_comercial\Articulos_Medidas\install_central_task.ps1"
 cd F:\Tarea\DashBoard_comercial\Articulos_Medidas
 .\install_central_task.ps1 -SqlPassword "<password-sql>" -TaskUser "<usuario-windows>" -TaskPassword "<password-windows>"
 ```
+
+Usar en `-TaskUser` el valor exacto que devuelve `whoami`, por ejemplo
+`CENTRAL\usuario` o `DOMINIO\usuario`. Si se informa solo `usuario` y Windows
+no lo puede mapear a un SID, `Register-ScheduledTask` falla con `0x80070534`.
 
 Notas:
 

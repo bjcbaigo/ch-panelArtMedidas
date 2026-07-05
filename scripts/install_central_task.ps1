@@ -5,7 +5,7 @@ param(
     [string]$TaskName = "CHEMES - Actualizar Panel Articulos",
     [int]$EveryMinutes = 60,
     [string]$SqlPassword,
-    [string]$TaskUser = $env:USERNAME,
+    [string]$TaskUser,
     [string]$TaskPassword,
     [switch]$SkipGitInstall,
     [string]$GitInstallerPath,
@@ -101,6 +101,39 @@ function Install-GitForWindows {
     Write-Step "Git instalado: $($gitCommand.Source)"
 }
 
+function Resolve-WindowsAccountName {
+    param([string]$AccountName)
+
+    if ([string]::IsNullOrWhiteSpace($AccountName)) {
+        return [System.Security.Principal.WindowsIdentity]::GetCurrent().Name
+    }
+
+    $candidates = New-Object System.Collections.ArrayList
+    [void]$candidates.Add($AccountName)
+    if ($AccountName -notmatch '\\' -and $AccountName -notmatch '@') {
+        if (-not [string]::IsNullOrWhiteSpace($env:USERDOMAIN)) {
+            [void]$candidates.Add("$env:USERDOMAIN\$AccountName")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($env:COMPUTERNAME)) {
+            [void]$candidates.Add("$env:COMPUTERNAME\$AccountName")
+        }
+        [void]$candidates.Add(".\$AccountName")
+    }
+
+    foreach ($candidate in ($candidates | Select-Object -Unique)) {
+        try {
+            $account = [System.Security.Principal.NTAccount]::new($candidate)
+            [void]$account.Translate([System.Security.Principal.SecurityIdentifier])
+            return $candidate
+        }
+        catch {
+            continue
+        }
+    }
+
+    throw "No se pudo resolver la cuenta '$AccountName'. Use el formato DOMINIO\usuario o $env:COMPUTERNAME\usuario. En CENTRAL puede ejecutar 'whoami' para ver el nombre exacto."
+}
+
 if ([string]::IsNullOrWhiteSpace($SqlPassword)) {
     throw "Debe indicar -SqlPassword para guardar CHEMES_SQL_AXOFT_PASSWORD en CENTRAL."
 }
@@ -179,13 +212,17 @@ $settings = New-ScheduledTaskSettingsSet `
     -MultipleInstances IgnoreNew `
     -ExecutionTimeLimit (New-TimeSpan -Hours 2)
 
+$resolvedTaskUser = Resolve-WindowsAccountName $TaskUser
+Write-Step "Usuario de tarea resuelto: $resolvedTaskUser"
+
 if ([string]::IsNullOrWhiteSpace($TaskPassword)) {
     Register-ScheduledTask `
         -TaskName $TaskName `
         -Action $action `
         -Trigger $trigger `
         -Settings $settings `
-        -Force | Out-Null
+        -Force `
+        -ErrorAction Stop | Out-Null
 }
 else {
     Register-ScheduledTask `
@@ -193,15 +230,16 @@ else {
         -Action $action `
         -Trigger $trigger `
         -Settings $settings `
-        -User $TaskUser `
+        -User $resolvedTaskUser `
         -Password $TaskPassword `
         -RunLevel Highest `
-        -Force | Out-Null
+        -Force `
+        -ErrorAction Stop | Out-Null
 }
 
 Write-Step "Tarea creada. Ejecutando una prueba desde el Programador de tareas"
-Start-ScheduledTask -TaskName $TaskName
+Start-ScheduledTask -TaskName $TaskName -ErrorAction Stop
 Start-Sleep -Seconds 10
-Get-ScheduledTaskInfo -TaskName $TaskName | Format-List LastRunTime,LastTaskResult,NextRunTime
+Get-ScheduledTaskInfo -TaskName $TaskName -ErrorAction Stop | Format-List LastRunTime,LastTaskResult,NextRunTime
 
 Write-Step "Instalacion finalizada"
