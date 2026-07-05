@@ -83,6 +83,26 @@ Ejemplo de tarea cada 60 minutos:
 schtasks /Create /TN "CHEMES - Actualizar Panel Articulos" /SC MINUTE /MO 60 /TR "PowerShell.exe -NoProfile -ExecutionPolicy Bypass -File ""C:\Users\rbaig\Documents\CH - Panel con datos Articulos + Medidas\scripts\update_and_publish_panel.ps1""" /F
 ```
 
+### Instalacion recomendada en CENTRAL
+
+Para no depender de la notebook `NB-RAUL`, instalar la tarea en el servidor
+CENTRAL `10.10.10.99`.
+
+Desde una consola PowerShell abierta como administrador en CENTRAL:
+
+```powershell
+git clone https://github.com/bjcbaigo/ch-panelArtMedidas.git C:\CH\ch-panelArtMedidas
+cd C:\CH\ch-panelArtMedidas
+.\scripts\install_central_task.ps1 -SqlPassword "<password-sql>" -TaskUser "<usuario-windows>" -TaskPassword "<password-windows>"
+```
+
+Notas:
+
+- Git for Windows debe estar instalado en CENTRAL.
+- El usuario de la tarea debe tener permiso para hacer `git push` al repo de GitHub.
+- Si GitHub pide credenciales, ejecutar una vez `git push origin master` en CENTRAL con ese usuario para dejar el login/credential manager configurado.
+- La tarea local de `NB-RAUL` debe deshabilitarse cuando CENTRAL quede validado, para evitar commits duplicados.
+
 Frecuencia sugerida:
 
 - Articulos, medidas y precios: cada 2 o 4 horas.
